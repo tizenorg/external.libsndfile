@@ -1,0 +1,7 @@
+libsndfile (1.0.21-1) unstable; urgency=low
+
+  * Initial release
+  * Git: pkgs/l/libsndfile
+  * Tag: libsndfile_1.0.21-1
+
+ -- Seungbae Shin <seungbae.shin@samsung.com>  Wed, 07 Dec 2011 12:01:09 +0900
