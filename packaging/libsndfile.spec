@@ -7,6 +7,7 @@ Group:      System/Libraries
 License:    LGPLv2+
 URL:        http://www.mega-nerd.com/libsndfile/
 Source0:    http://www.mega-nerd.com/libsndfile/libsndfile-%{version}.tar.gz
+Source1001: packaging/libsndfile.manifest 
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(alsa)
@@ -40,6 +41,7 @@ This package contains files needed to develop with libsndfile.
 
 
 %build
+cp %{SOURCE1001} .
 
 %configure --disable-static \
     --disable-dependency-tracking
@@ -63,6 +65,7 @@ rm -rf %{buildroot}
 
 
 %files
+%manifest libsndfile.manifest
 %defattr(-,root,root,-)
 %doc COPYING 
 %{_bindir}/*
@@ -70,6 +73,7 @@ rm -rf %{buildroot}
 
 
 %files devel
+%manifest libsndfile.manifest
 %defattr(-,root,root,-)
 %{_includedir}/sndfile.h
 %{_includedir}/sndfile.hh
