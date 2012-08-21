@@ -2,12 +2,13 @@ Source: libsndfile
 Section: devel
 Priority: optional
 Maintainer: Erik de Castro Lopo <erikd@mega-nerd.com>
-Uploaders: Semun Lee <semun.lee@samsung.com>
+Uploaders: Semun Lee <semun.lee@samsung.com>, Daniel Juyung Seo <juyung.seo@samsung.com>
 DM-Upload-Allowed: yes
 Build-Depends: debhelper (>= 7.0.0), quilt, pkg-config, zlib1g-dev,
  autoconf, automake,
  libvorbis-dev (>= 1.2.3),
- libasound2-dev [!hurd-i386 !kfreebsd-i386 !kfreebsd-amd64]
+ libasound2-dev [!hurd-i386 !kfreebsd-i386 !kfreebsd-amd64],
+ libflac
 Standards-Version: 3.8.3
 Homepage: http://www.mega-nerd.com/libsndfile/
 

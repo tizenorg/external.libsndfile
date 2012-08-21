@@ -1,7 +1,13 @@
+libsndfile (1.0.21-2) natty; urgency=low
+
+  * Added libflac dependency.
+  * Git: slp/pkgs/l/libsndfile
+  * Tag: libsndfile_1.0.21-2
+
+ -- Daniel Juyung Seo <juyung.seo@samsung.com>  Tue, 15 May 2012 16:27:08 +0900
+
 libsndfile (1.0.21-1) unstable; urgency=low
 
-  * Initial release
-  * Git: pkgs/l/libsndfile
-  * Tag: libsndfile_1.0.21-1
+  * Packaged for VITA platform.
 
- -- Seungbae Shin <seungbae.shin@samsung.com>  Wed, 07 Dec 2011 12:01:09 +0900
+ -- Semun Lee <semun.lee@samsung.com>  Tue, 09 Feb 2009 13:42:14 +1100
