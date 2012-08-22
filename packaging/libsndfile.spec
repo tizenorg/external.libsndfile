@@ -1,5 +1,3 @@
-#sbs-git:slp/pkgs/l/libsndfile libsndfile 1.0.21 82073f8ea0cf1e3791fea9362087d4f61db9b9c8
-
 Name:       libsndfile
 Summary:    Library for reading and writing sound files
 Version: 1.0.21
