@@ -48,8 +48,7 @@ make %{?jobs:-j%jobs}
 %install
 rm -rf %{buildroot}
 %make_install
-mkdir -p %{buildroot}/usr/share/license
-cp COPYING %{buildroot}/usr/share/license/%{name}
+
 
 
 
@@ -68,7 +67,7 @@ cp COPYING %{buildroot}/usr/share/license/%{name}
 %doc COPYING 
 %{_bindir}/*
 %{_libdir}/%{name}.so.*
-/usr/share/license/%{name}
+
 
 %files devel
 %defattr(-,root,root,-)
@@ -77,3 +76,4 @@ cp COPYING %{buildroot}/usr/share/license/%{name}
 %{_libdir}/%{name}.so
 %{_libdir}/pkgconfig/sndfile.pc
 /usr/share/doc/libsndfile1-dev
+
