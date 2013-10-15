@@ -47,10 +47,9 @@ make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
-%make_install
 mkdir -p %{buildroot}/usr/share/license
 cp COPYING %{buildroot}/usr/share/license/%{name}
-
+%make_install
 
 
 %post -p /sbin/ldconfig
