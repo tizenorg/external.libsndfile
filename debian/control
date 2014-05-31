@@ -1,0 +1,61 @@
+Source: libsndfile
+Section: devel
+Priority: optional
+Maintainer: Erik de Castro Lopo <erikd@mega-nerd.com>
+Uploaders: Semun Lee <semun.lee@samsung.com>, Daniel Juyung Seo <juyung.seo@samsung.com>
+DM-Upload-Allowed: yes
+Build-Depends: debhelper (>= 7.0.0), quilt, pkg-config, zlib1g-dev,
+ autoconf, automake,
+ libvorbis-dev (>= 1.2.3),
+ libasound2-dev [!hurd-i386 !kfreebsd-i386 !kfreebsd-amd64],
+ libflac
+Standards-Version: 3.8.3
+Homepage: http://www.mega-nerd.com/libsndfile/
+
+Package: libsndfile1-dev
+Section: libdevel
+Architecture: any
+Depends: libsndfile1 (= ${binary:Version}), pkg-config, libvorbis-dev (>= 1.2.3)
+Conflicts: libsndfile-dev, libsndfile0-dev
+Replaces: libsndfile-dev
+Provides: libsndfile-dev
+Description: Development files for libsndfile; a library for reading/writing audio files
+ .
+ libsndfile is a library of C routines for reading and writing files containing
+ sampled audio data.
+ .
+ This is the development version of libsndfile. You will need this only if you
+ intend to compile programs that use this library.
+
+Package: libsndfile1
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Library for reading/writing audio files
+ .
+ libsndfile is a library of C routines for reading and writing files containing
+ sampled audio data.
+ .
+ Various versions of WAV (integer, floating point, GSM, and compressed formats);
+ Microsoft PCM, A-law and u-law formats; AIFF, AIFC and RIFX; various AU/SND
+ formats (Sun/NeXT, Dec AU, G721 and G723 ADPCM); RAW header-less PCM files;
+ Amiga IFF/8SVX/16SV PCM files; Ensoniq PARIS  (.PAF); Apple's Core Audio Format
+ (CAF) and others.
+
+Package: sndfile-programs
+Section: utils
+Architecture: any
+Depends: ${shlibs:Depends}
+Recommends: sndfile-tools
+Description: Sample programs that use libsndfile
+ .
+ This package contains simple programs which use libsndfile for operating on
+ sound files.
+ .
+ Programs include:
+   - sndfile-cmp : compare the audio data of two files
+   - sndfile-concat : concatenate two or more files
+   - sndfile-convert : convert between sound file formats
+   - sndfile-info : print information about files
+   - sndfile-metadata-get/set : get and set file metadata
+   - sndfile-play : play a sound file
