@@ -2,9 +2,8 @@
 
 Name:       libsndfile
 Summary:    Library for reading and writing sound files
-Version:    1.0.25
+Version:    1.0.28
 Release:    0
-VCS:        external/libsndfile#libsndfile_1.0.25-0-1-ge57ad1d58bd1aaae54e05a73dca6526e6a38349b
 Group:      System/Libraries
 License:    LGPLv2+
 URL:        http://www.mega-nerd.com/libsndfile/
@@ -12,9 +11,9 @@ Source0:    http://www.mega-nerd.com/libsndfile/libsndfile-%{version}.tar.gz
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 BuildRequires:  pkgconfig(alsa)
-BuildRequires:  pkgconfig(flac)
-BuildRequires:  pkgconfig(vorbis)
 BuildRequires:  pkgconfig(ogg)
+BuildRequires:  pkgconfig(vorbis)
+BuildRequires:  pkgconfig(flac)
 
 
 %description
