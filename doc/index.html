@@ -6,7 +6,7 @@
 	libsndfile
 	</TITLE>
 	<META NAME="Author"      CONTENT="Erik de Castro Lopo (erikd AT mega-nerd DOT com)">
-    <META NAME="Version"     CONTENT="libsndfile-1.0.21">
+    <META NAME="Version"     CONTENT="libsndfile-1.0.25">
 	<META NAME="Description" CONTENT="The libsndfile Home Page">
 	<META NAME="Keywords"    CONTENT="WAV AIFF AU SVX PAF NIST W64 libsndfile sound audio dsp Linux">
 	<META NAME="ROBOTS" 	 CONTENT="NOFOLLOW">
@@ -65,18 +65,20 @@
 </P>
 <!-- pepper -->
 <UL>
-	<LI>i586-pc-linux-gnu (Linux on PC hardware)
- 	<LI>powerpc-unknown-linux-gnu (Linux on Apple Mac hardware)
-	<LI>powerpc-apple-darwin7.0 (Mac OS X 10.3)
-	<LI>sparc-sun-solaris2.8 (using gcc)
-	<LI>mips-sgi-irix5.3 (using gcc)
-	<LI>QNX 6.0
-	<LI>i386-unknown-openbsd2.9
+	<LI>Every platform supported by Debian GNU/Linux including x86_64-linux-gnu,
+		i486-linux-gnu, powerpc-linux-gnu, sparc-linux-gnu, alpha-linux-gnu,
+		mips-linux-gnu and armel-linux-gnu.</LI>
+	<LI>arm-linux-androideab (Android phones OS)</LI>
+	<LI>powerpc-apple-darwin7.0 (Mac OS X 10.3)</LI>
+	<LI>sparc-sun-solaris2.8 (using gcc)</LI>
+	<LI>mips-sgi-irix5.3 (using gcc)</LI>
+	<LI>QNX 6.0</LI>
+	<LI>i386-unknown-openbsd2.9</LI>
 </UL>
 <!-- pepper -->
 <P>
-	At the moment, each new release is being tested on i386 Linux, PowerPC Linux,
-	MacOS X on PowerPC and Win32.
+	At the moment, each new release is being tested on i386 Linux, x86_64 Linux,
+	PowerPC Linux, Win32 and Win64.
 </P>
 <!-- pepper -->
 
@@ -358,10 +360,15 @@ and
 	<LI>Version 1.0.17 (Aug 31 2006) Add C++ wrapper sndfile.hh. Minor bug fixes and cleanups.
 	<LI>Version 1.0.18 (Feb 07 2009) Add Ogg/Vorbis suppport, remove captive libraries, many
 				new features and bug fixes. Generate Win32 and Win64 pre-compiled binaries.
-	<LI>Version 1.0.19 (Mar 02 2009) Fix for CVE-2009-0186. Huge number of minor fixes as a 
+	<LI>Version 1.0.19 (Mar 02 2009) Fix for CVE-2009-0186. Huge number of minor fixes as a
 				result of static analysis.
 	<LI>Version 1.0.20 (May 14 2009) Fix for potential heap overflow.
 	<LI>Version 1.0.21 (December 13 2009) Bunch of minor bug fixes.
+	<LI>Version 1.0.22 (October 04 2010) Bunch of minor bug fixes.
+	<LI>Version 1.0.23 (October 10 2010) Minor bug fixes.
+	<LI>Version 1.0.24 (March 23 2011) Minor bug fixes.
+	<LI>Version 1.0.25 (July 13 2011) Fix for Secunia Advisory SA45125. Minor bug fixes and
+				improvements.
 	</UL>
 
 <A NAME="Similar"></A>
@@ -423,24 +430,22 @@ and
 </P>
 	<UL>
 	<LI>Source code as a .tar.gz :
-			<A HREF="libsndfile-1.0.21.tar.gz">libsndfile-1.0.21.tar.gz</A>
+			<A HREF="files/libsndfile-1.0.25.tar.gz">libsndfile-1.0.25.tar.gz</A>
 			and
-			<A HREF="libsndfile-1.0.21.tar.gz.asc">(GPG signature)</A>.
+			<A HREF="files/libsndfile-1.0.25.tar.gz.asc">(GPG signature)</A>.
 	<LI>Win32 installer:
-			<A HREF="libsndfile-1.0.21-w32-setup.exe">
-			libsndfile-1.0.21-w32-setup.exe</A> (thoroughly tested under
+			<A HREF="files/libsndfile-1.0.25-w32-setup.exe">
+			libsndfile-1.0.25-w32-setup.exe</A> (thoroughly tested under
 			<a href="http://www.winehq.com/">Wine</a> and Windows XP).
 	<LI>Win64 installer:
-			<A HREF="libsndfile-1.0.21-w64-setup.exe">
-			libsndfile-1.0.21-w64-setup.exe</A>
+			<A HREF="files/libsndfile-1.0.25-w64-setup.exe">
+			libsndfile-1.0.25-w64-setup.exe</A>
 			(thoroughly tested on 64 bit Windows 7).
 	</UL>
 
 <P>
 The Win32 installer was compiled for Windows XP but should also work on Windows
-2000  and Vista.
-It may even work on earlier versions of Windows.
-The Win64 is pretty much untested.
+2000, Vista and Windows 7.
 </p>
 
 <P>

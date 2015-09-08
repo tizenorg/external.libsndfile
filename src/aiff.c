@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 1999-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 1999-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2005 David Viens <davidv@plogue.com>
 **
 ** This program is free software; you can redistribute it and/or modify
@@ -412,7 +412,7 @@ aiff_read_header (SF_PRIVATE *psf, COMM_CHUNK *comm_fmt)
 						return SFE_AIFF_NO_FORM ;
 
 					psf_binheader_readf (psf, "E4", &FORMsize) ;
-					pchk4_store (&(paiff->chunk4), marker, psf->headindex - 8, FORMsize) ;
+					pchk4_store (&paiff->chunk4, marker, psf->headindex - 8, FORMsize) ;
 
 					if (psf->fileoffset > 0 && psf->filelength > FORMsize + 8)
 					{	/* Set file length. */
@@ -527,8 +527,10 @@ aiff_read_header (SF_PRIVATE *psf, COMM_CHUNK *comm_fmt)
 						psf->datalength -= ssnd_fmt.offset ;
 						}
 					else
-					{	psf_log_printf (psf, "  Offset     : %u (Should be zero)\n", ssnd_fmt.offset) ;
+					{	psf_log_printf (psf, "  Offset     : %u\n", ssnd_fmt.offset) ;
 						psf_log_printf (psf, "  Block Size : %u ???\n", ssnd_fmt.blocksize) ;
+						psf->dataoffset += ssnd_fmt.offset ;
+						psf->datalength -= ssnd_fmt.offset ;
 						} ;
 
 					/* Only set dataend if there really is data at the end. */
@@ -1169,34 +1171,72 @@ aiff_write_header (SF_PRIVATE *psf, int calc_length)
 	bit_width = psf->bytewidth * 8 ;
 	comm_frames = (psf->sf.frames > 0xFFFFFFFF) ? 0xFFFFFFFF : psf->sf.frames ;
 
-	switch (SF_CODEC (psf->sf.format))
-	{	case SF_FORMAT_PCM_S8 :
+	switch (SF_CODEC (psf->sf.format) | endian)
+	{	case SF_FORMAT_PCM_S8 | SF_ENDIAN_BIG :
+			psf->endian = SF_ENDIAN_BIG ;
+			comm_type = AIFC_MARKER ;
+			comm_size = SIZEOF_AIFC_COMM ;
+			comm_encoding = twos_MARKER ;
+			break ;
+
+		case SF_FORMAT_PCM_S8 | SF_ENDIAN_LITTLE :
+			psf->endian = SF_ENDIAN_LITTLE ;
+			comm_type = AIFC_MARKER ;
+			comm_size = SIZEOF_AIFC_COMM ;
+			comm_encoding = sowt_MARKER ;
+			break ;
+
+		case SF_FORMAT_PCM_16 | SF_ENDIAN_BIG :
+			psf->endian = SF_ENDIAN_BIG ;
+			comm_type = AIFC_MARKER ;
+			comm_size = SIZEOF_AIFC_COMM ;
+			comm_encoding = twos_MARKER ;
+			break ;
+
+		case SF_FORMAT_PCM_16 | SF_ENDIAN_LITTLE :
+			psf->endian = SF_ENDIAN_LITTLE ;
+			comm_type = AIFC_MARKER ;
+			comm_size = SIZEOF_AIFC_COMM ;
+			comm_encoding = sowt_MARKER ;
+			break ;
+
+		case SF_FORMAT_PCM_24 | SF_ENDIAN_BIG :
+			psf->endian = SF_ENDIAN_BIG ;
+			comm_type = AIFC_MARKER ;
+			comm_size = SIZEOF_AIFC_COMM ;
+			comm_encoding = in24_MARKER ;
+			break ;
+
+		case SF_FORMAT_PCM_24 | SF_ENDIAN_LITTLE :
+			psf->endian = SF_ENDIAN_LITTLE ;
+			comm_type = AIFC_MARKER ;
+			comm_size = SIZEOF_AIFC_COMM ;
+			comm_encoding = ni24_MARKER ;
+			break ;
+
+		case SF_FORMAT_PCM_32 | SF_ENDIAN_BIG :
+			psf->endian = SF_ENDIAN_BIG ;
+			comm_type = AIFC_MARKER ;
+			comm_size = SIZEOF_AIFC_COMM ;
+			comm_encoding = in32_MARKER ;
+			break ;
+
+		case SF_FORMAT_PCM_32 | SF_ENDIAN_LITTLE :
+			psf->endian = SF_ENDIAN_LITTLE ;
+			comm_type = AIFC_MARKER ;
+			comm_size = SIZEOF_AIFC_COMM ;
+			comm_encoding = ni32_MARKER ;
+			break ;
+
+		case SF_FORMAT_PCM_S8 :			/* SF_ENDIAN_FILE */
 		case SF_FORMAT_PCM_16 :
 		case SF_FORMAT_PCM_24 :
 		case SF_FORMAT_PCM_32 :
-				switch (endian)
-				{	case SF_ENDIAN_BIG :
-							psf->endian = SF_ENDIAN_BIG ;
-							comm_type = AIFC_MARKER ;
-							comm_size = SIZEOF_AIFC_COMM ;
-							comm_encoding = twos_MARKER ;
-							break ;
-
-					case SF_ENDIAN_LITTLE :
-							psf->endian = SF_ENDIAN_LITTLE ;
-							comm_type = AIFC_MARKER ;
-							comm_size = SIZEOF_AIFC_COMM ;
-							comm_encoding = sowt_MARKER ;
-							break ;
-
-					default : /* SF_ENDIAN_FILE */
-							psf->endian = SF_ENDIAN_BIG ;
-							comm_type = AIFF_MARKER ;
-							comm_size = SIZEOF_AIFF_COMM ;
-							comm_encoding = 0 ;
-							break ;
-					} ;
-				break ;
+			psf->endian = SF_ENDIAN_BIG ;
+			comm_type = AIFF_MARKER ;
+			comm_size = SIZEOF_AIFF_COMM ;
+			comm_encoding = 0 ;
+			break ;
 
 		case SF_FORMAT_FLOAT :					/* Big endian floating point. */
 				psf->endian = SF_ENDIAN_BIG ;
@@ -1672,7 +1712,8 @@ aiff_read_chanmap (SF_PRIVATE * psf, unsigned dword)
 
 	bytesread = psf_binheader_readf (psf, "444", &layout_tag, &channel_bitmap, &channel_decriptions) ;
 
-	map_info = aiff_caf_of_channel_layout_tag (layout_tag) ;
+	if ((map_info = aiff_caf_of_channel_layout_tag (layout_tag)) == NULL)
+		return 0 ;
 
 	psf_log_printf (psf, "  Tag    : %x\n", layout_tag) ;
 	if (map_info)

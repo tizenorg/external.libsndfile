@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 1999-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 1999-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU Lesser General Public License as published by
@@ -21,6 +21,7 @@
 #include	<stdlib.h>
 #include	<string.h>
 #include	<ctype.h>
+#include	<assert.h>
 
 #include	"sndfile.h"
 #include	"sfendian.h"
@@ -64,7 +65,7 @@ ErrorStruct SndfileErrors [] =
 
 	/* Private error values and their associated strings. */
 	{	SFE_ZERO_MAJOR_FORMAT	, "Error : major format is 0." },
-	{	SFE_ZERO_MINOR_FORMAT	, "Error : major format is 0." },
+	{	SFE_ZERO_MINOR_FORMAT	, "Error : minor format is 0." },
 	{	SFE_BAD_FILE			, "File does not exist or is not a regular file (possibly a pipe?)." },
 	{	SFE_BAD_FILE_READ		, "File exists but no data could be read." },
 	{	SFE_OPEN_FAILED			, "Could not open file." },
@@ -89,7 +90,10 @@ ErrorStruct SndfileErrors [] =
 	{	SFE_NO_EMBEDDED_RDWR	, "Error : cannot open embedded file read/write." },
 	{	SFE_NO_PIPE_WRITE		, "Error : this file format does not support pipe write." },
 	{	SFE_BAD_VIRTUAL_IO		, "Error : bad pointer on SF_VIRTUAL_IO struct." },
-	{	SFE_BAD_BROADCAST_INFO_SIZE, "Error : badd SF_BROADCAST_INFO_SIZE." },
+	{	SFE_BAD_BROADCAST_INFO_SIZE
+								, "Error : bad size in SF_BROADCAST_INFO struct." },
+	{	SFE_BAD_BROADCAST_INFO_TOO_BIG
+								, "Error : SF_BROADCAST_INFO struct too large." },
 
 	{	SFE_INTERLEAVE_MODE		, "Attempt to write to file with non-interleaved data." },
 	{	SFE_INTERLEAVE_SEEK		, "Bad karma in seek during interleave read operation." },
@@ -108,7 +112,7 @@ ErrorStruct SndfileErrors [] =
 	{	SFE_SEEK_FAILED			, "Error : parameters OK, but psf_seek() failed." },
 
 	{	SFE_BAD_OPEN_MODE		, "Error : bad mode parameter for file open." },
-	{	SFE_OPEN_PIPE_RDWR		, "Error : attempt toopen a pipe in read/write mode." },
+	{	SFE_OPEN_PIPE_RDWR		, "Error : attempt to open a pipe in read/write mode." },
 	{	SFE_RDWR_POSITION		, "Error on RDWR position (cryptic)." },
 	{	SFE_RDWR_BAD_HEADER		, "Error : Cannot open file in read/write mode due to string data in header." },
 	{	SFE_CMD_HAS_DATA		, "Error : Command fails because file already has audio data." },
@@ -170,6 +174,7 @@ ErrorStruct SndfileErrors [] =
 	{	SFE_PAF_VERSION			, "Error in PAF file, bad version." },
 	{	SFE_PAF_UNKNOWN_FORMAT	, "Error in PAF file, unknown format." },
 	{	SFE_PAF_SHORT_HEADER	, "Error in PAF file. File shorter than minimal header." },
+	{	SFE_PAF_BAD_CHANNELS	, "Error in PAF file. Bad channel count." },
 
 	{	SFE_SVX_NO_FORM			, "Error in 8SVX / 16SV file, no 'FORM' marker." },
 	{	SFE_SVX_NO_BODY			, "Error in 8SVX / 16SV file, no 'BODY' marker." },
@@ -237,7 +242,7 @@ ErrorStruct SndfileErrors [] =
 	{	SFE_FLAC_INIT_DECODER	, "Error : problem while initialization of the flac decoder." },
 	{	SFE_FLAC_LOST_SYNC		, "Error : flac decoder lost sync." },
 	{	SFE_FLAC_BAD_SAMPLE_RATE, "Error : flac does not support this sample rate." },
-	{	SFE_FLAC_UNKOWN_ERROR	, "Error : unkown error in flac decoder." },
+	{	SFE_FLAC_UNKOWN_ERROR	, "Error : unknown error in flac decoder." },
 
 	{	SFE_WVE_NOT_WVE			, "Error : not a WVE file." },
 	{	SFE_WVE_NO_PIPE			, "Error : not able to operate on WVE files over a pipe." },
@@ -302,6 +307,9 @@ static char	sf_syserr [SF_SYSERR_LEN] = { 0 } ;
 SNDFILE*
 sf_open	(const char *path, int mode, SF_INFO *sfinfo)
 {	SF_PRIVATE 	*psf ;
+
+	/* Ultimate sanity check. */
+	assert (sizeof (sf_count_t) == 8) ;
 
 	if ((psf = calloc (1, sizeof (SF_PRIVATE))) == NULL)
 	{	sf_errno = SFE_MALLOC_FAILED ;
@@ -547,7 +555,6 @@ sf_format_check	(const SF_INFO *info)
 
 	switch (SF_CONTAINER (info->format))
 	{	case SF_FORMAT_WAV :
-		case SF_FORMAT_WAVEX :
 				/* WAV now allows both endian, RIFF or RIFX (little or big respectively) */
 				if (subformat == SF_FORMAT_PCM_U8 || subformat == SF_FORMAT_PCM_16)
 					return 1 ;
@@ -558,6 +565,19 @@ sf_format_check	(const SF_INFO *info)
 				if (subformat == SF_FORMAT_GSM610 && info->channels == 1)
 					return 1 ;
 				if (subformat == SF_FORMAT_G721_32 && info->channels == 1)
+					return 1 ;
+				if (subformat == SF_FORMAT_ULAW || subformat == SF_FORMAT_ALAW)
+					return 1 ;
+				if (subformat == SF_FORMAT_FLOAT || subformat == SF_FORMAT_DOUBLE)
+					return 1 ;
+				break ;
+
+		case SF_FORMAT_WAVEX :
+				if (endian == SF_ENDIAN_BIG || endian == SF_ENDIAN_CPU)
+					return 0 ;
+				if (subformat == SF_FORMAT_PCM_U8 || subformat == SF_FORMAT_PCM_16)
+					return 1 ;
+				if (subformat == SF_FORMAT_PCM_24 || subformat == SF_FORMAT_PCM_32)
 					return 1 ;
 				if (subformat == SF_FORMAT_ULAW || subformat == SF_FORMAT_ALAW)
 					return 1 ;
@@ -634,23 +654,19 @@ sf_format_check	(const SF_INFO *info)
 				break ;
 
 		case SF_FORMAT_PAF :
-				if (subformat == SF_FORMAT_PCM_S8 || subformat == SF_FORMAT_PCM_16)
-					return 1 ;
-				if (subformat == SF_FORMAT_PCM_24 || subformat == SF_FORMAT_PCM_32)
+				if (subformat == SF_FORMAT_PCM_S8 || subformat == SF_FORMAT_PCM_16 || subformat == SF_FORMAT_PCM_24)
 					return 1 ;
 				break ;
 
 		case SF_FORMAT_SVX :
-				/* SVX currently does not support more than one channel for write.
-				** Read will allow more than one channel but only allow one here.
-				*/
-				if (info->channels != 1)
+				/* SVX only supports writing mono SVX files. */
+				if (info->channels > 1)
 					return 0 ;
 				/* Always big endian. */
 				if (endian == SF_ENDIAN_LITTLE || endian == SF_ENDIAN_CPU)
 					return 0 ;
 
-				if ((subformat == SF_FORMAT_PCM_S8 || subformat == SF_FORMAT_PCM_16) && info->channels == 1)
+				if (subformat == SF_FORMAT_PCM_S8 || subformat == SF_FORMAT_PCM_16)
 					return 1 ;
 				break ;
 
@@ -664,7 +680,7 @@ sf_format_check	(const SF_INFO *info)
 				break ;
 
 		case SF_FORMAT_IRCAM :
-				if (subformat == SF_FORMAT_PCM_16 || subformat == SF_FORMAT_PCM_24 || subformat == SF_FORMAT_PCM_32)
+				if (subformat == SF_FORMAT_PCM_16 || subformat == SF_FORMAT_PCM_32)
 					return 1 ;
 				if (subformat == SF_FORMAT_ULAW || subformat == SF_FORMAT_ALAW || subformat == SF_FORMAT_FLOAT)
 					return 1 ;
@@ -887,7 +903,7 @@ sf_command	(SNDFILE *sndfile, int command, void *data, int datasize)
 
 	if (sndfile == NULL && command == SFC_GET_LOG_INFO)
 	{	if (data == NULL)
-			return (psf->error = SFE_BAD_COMMAND_PARAM) ;
+			return (sf_errno = SFE_BAD_COMMAND_PARAM) ;
 		snprintf (data, datasize, "%s", sf_logbuffer) ;
 		return strlen (data) ;
 		} ;
@@ -1060,6 +1076,11 @@ sf_command	(SNDFILE *sndfile, int command, void *data, int datasize)
 				return SF_TRUE ;
 			if (datasize != sizeof (sf_count_t))
 				return SF_TRUE ;
+			if (data == NULL || datasize != sizeof (sf_count_t))
+			{	psf->error = SFE_BAD_COMMAND_PARAM ;
+				return SF_FALSE ;
+				}
+			else
 			{	sf_count_t position ;
 
 				position = *((sf_count_t*) data) ;
@@ -1135,7 +1156,7 @@ sf_command	(SNDFILE *sndfile, int command, void *data, int datasize)
 			if ((psf->file.mode != SFM_WRITE) && (psf->file.mode != SFM_RDWR))
 				return SF_FALSE ;
 			/* If data has already been written this must fail. */
-			if (psf->broadcast_var == NULL && psf->have_written)
+			if (psf->broadcast_16k == NULL && psf->have_written)
 			{	psf->error = SFE_CMD_HAS_DATA ;
 				return SF_FALSE ;
 				} ;
@@ -1419,7 +1440,7 @@ sf_read_raw		(SNDFILE *sndfile, void *ptr, sf_count_t bytes)
 		return	0 ;
 		} ;
 
-	if (bytes < 0 || psf->read_current >= psf->datalength)
+	if (bytes < 0 || psf->read_current >= psf->sf.frames)
 	{	psf_memset (ptr, 0, bytes) ;
 		return 0 ;
 		} ;
@@ -1428,6 +1449,10 @@ sf_read_raw		(SNDFILE *sndfile, void *ptr, sf_count_t bytes)
 	{	psf->error = SFE_BAD_READ_ALIGN ;
 		return 0 ;
 		} ;
+
+	if (psf->last_op != SFM_READ)
+		if (psf->seek (psf, SFM_READ, psf->read_current) < 0)
+			return 0 ;
 
 	count = psf_fread (ptr, 1, bytes, psf) ;
 
@@ -1837,6 +1862,10 @@ sf_write_raw	(SNDFILE *sndfile, const void *ptr, sf_count_t len)
 		return 0 ;
 		} ;
 
+	if (psf->last_op != SFM_WRITE)
+		if (psf->seek (psf, SFM_WRITE, psf->write_current) < 0)
+			return 0 ;
+
 	if (psf->have_written == SF_FALSE && psf->write_header != NULL)
 		psf->write_header (psf, SF_FALSE) ;
 	psf->have_written = SF_TRUE ;
@@ -1845,10 +1874,13 @@ sf_write_raw	(SNDFILE *sndfile, const void *ptr, sf_count_t len)
 
 	psf->write_current += count / blockwidth ;
 
+	psf->last_op = SFM_WRITE ;
+
+	if (psf->auto_header && psf->write_header != NULL)
+		psf->write_header (psf, SF_TRUE) ;
+
 	if (psf->write_current > psf->sf.frames)
 		psf->sf.frames = psf->write_current ;
-
-	psf->last_op = SFM_WRITE ;
 
 	return count ;
 } /* sf_write_raw */
@@ -2239,7 +2271,7 @@ format_from_extension (SF_PRIVATE *psf)
 	if (strlen (cptr) > sizeof (buffer) - 1)
 		return 0 ;
 
-	strncpy (buffer, cptr, sizeof (buffer)) ;
+	psf_strlcpy (buffer, sizeof (buffer), cptr) ;
 	buffer [sizeof (buffer) - 1] = 0 ;
 
 	/* Convert everything in the buffer to lower case. */
@@ -2379,23 +2411,31 @@ guess_file_type (SF_PRIVATE *psf)
 	if (buffer [0] == MAKE_MARKER ('f', 'L', 'a', 'C'))
 		return SF_FORMAT_FLAC ;
 
-	/* Turtle Beach SMP 16-bit */
-	if (buffer [0] == MAKE_MARKER ('S', 'O', 'U', 'N') && buffer [1] == MAKE_MARKER ('D', ' ', 'S', 'A'))
-		return 0 ;
-
-	if (buffer [0] == MAKE_MARKER ('S', 'Y', '8', '0') || buffer [0] == MAKE_MARKER ('S', 'Y', '8', '5'))
-		return 0 ;
-
-	if (buffer [0] == MAKE_MARKER ('a', 'j', 'k', 'g'))
-		return 0 /*-SF_FORMAT_SHN-*/ ;
-
 	if (buffer [0] == MAKE_MARKER ('2', 'B', 'I', 'T'))
 		return SF_FORMAT_AVR ;
 
 	if (buffer [0] == MAKE_MARKER ('R', 'F', '6', '4') && buffer [2] == MAKE_MARKER ('W', 'A', 'V', 'E'))
 		return SF_FORMAT_RF64 ;
 
-	/* This must be the second last one. */
+	if (buffer [0] == MAKE_MARKER ('I', 'D', '3', 3))
+	{	psf_log_printf (psf, "Found 'ID3' marker.\n") ;
+		if (id3_skip (psf))
+			return guess_file_type (psf) ;
+		return 0 ;
+		} ;
+
+	/* Turtle Beach SMP 16-bit */
+	if (buffer [0] == MAKE_MARKER ('S', 'O', 'U', 'N') && buffer [1] == MAKE_MARKER ('D', ' ', 'S', 'A'))
+		return 0 ;
+
+	/* Yamaha sampler format. */
+	if (buffer [0] == MAKE_MARKER ('S', 'Y', '8', '0') || buffer [0] == MAKE_MARKER ('S', 'Y', '8', '5'))
+		return 0 ;
+
+	if (buffer [0] == MAKE_MARKER ('a', 'j', 'k', 'g'))
+		return 0 /*-SF_FORMAT_SHN-*/ ;
+
+	/* This must be the last one. */
 	if (psf->filelength > 0 && (format = try_resource_fork (psf)) != 0)
 		return format ;
 
@@ -2497,8 +2537,8 @@ psf_close (SF_PRIVATE *psf)
 	if (psf->peak_info)
 		free (psf->peak_info) ;
 
-	if (psf->broadcast_var)
-		free (psf->broadcast_var) ;
+	if (psf->broadcast_16k)
+		free (psf->broadcast_16k) ;
 
 	if (psf->loop_info)
 		free (psf->loop_info) ;
@@ -2628,7 +2668,7 @@ psf_open_file (SF_PRIVATE *psf, SF_INFO *sfinfo)
 		{	error = SFE_ZERO_MAJOR_FORMAT ;
 			goto error_exit ;
 			} ;
-		if ((SF_CONTAINER (psf->sf.format)) == 0)
+		if ((SF_CODEC (psf->sf.format)) == 0)
 		{	error = SFE_ZERO_MINOR_FORMAT ;
 			goto error_exit ;
 			} ;
@@ -2801,12 +2841,23 @@ psf_open_file (SF_PRIVATE *psf, SF_INFO *sfinfo)
 
 	/* For now, check whether embedding is supported. */
 	format = SF_CONTAINER (psf->sf.format) ;
-	if (psf->fileoffset > 0 &&
-			(format != SF_FORMAT_WAV) && (format != SF_FORMAT_WAVEX) &&
-			(format != SF_FORMAT_AIFF) && (format != SF_FORMAT_AU)
-			)
-	{	error = SFE_NO_EMBED_SUPPORT ;
-		goto error_exit ;
+	if (psf->fileoffset > 0)
+	{	switch (format)
+		{	case SF_FORMAT_WAV :
+			case SF_FORMAT_WAVEX :
+			case SF_FORMAT_AIFF :
+			case SF_FORMAT_AU :
+				/* Actual embedded files. */
+				break ;
+
+			case SF_FORMAT_FLAC :
+				/* Flac with an ID3v2 header? */
+				break ;
+
+			default :
+				error = SFE_NO_EMBED_SUPPORT ;
+				goto error_exit ;
+			} ;
 		} ;
 
 	if (psf->fileoffset > 0)

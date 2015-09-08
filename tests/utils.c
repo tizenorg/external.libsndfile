@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2002-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2002-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -340,7 +340,7 @@ check_log_buffer_or_die (SNDFILE *file, int line_num)
 {	static char	buffer [LOG_BUFFER_SIZE] ;
 	int			count ;
 
-	memset (buffer, 0, LOG_BUFFER_SIZE) ;
+	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Get the log buffer data. */
 	count = sf_command	(file, SFC_GET_LOG_INFO, buffer, LOG_BUFFER_SIZE) ;
@@ -379,7 +379,7 @@ string_in_log_buffer (SNDFILE *file, const char *s)
 {	static char	buffer [LOG_BUFFER_SIZE] ;
 	int			count ;
 
-	memset (buffer, 0, LOG_BUFFER_SIZE) ;
+	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Get the log buffer data. */
 	count = sf_command	(file, SFC_GET_LOG_INFO, buffer, LOG_BUFFER_SIZE) ;
@@ -448,12 +448,11 @@ hexdump_file (const char * filename, sf_count_t offset, sf_count_t length)
 void
 dump_log_buffer (SNDFILE *file)
 {	static char	buffer [LOG_BUFFER_SIZE] ;
-	int			count ;
 
-	memset (buffer, 0, LOG_BUFFER_SIZE) ;
+	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Get the log buffer data. */
-	count = sf_command	(file, SFC_GET_LOG_INFO, buffer, LOG_BUFFER_SIZE) ;
+	sf_command	(file, SFC_GET_LOG_INFO, buffer, LOG_BUFFER_SIZE) ;
 
 	if (strlen (buffer) < 1)
 		puts ("Log buffer empty.\n") ;
@@ -639,7 +638,7 @@ test_read_short_or_die (SNDFILE *file, int pass, short *test, sf_count_t items, 
 		} ;
 
 	return ;
-} /* test_read_short */
+} /* test_read_short_or_die */
 
 void
 test_read_int_or_die (SNDFILE *file, int pass, int *test, sf_count_t items, int line_num)
@@ -657,7 +656,7 @@ test_read_int_or_die (SNDFILE *file, int pass, int *test, sf_count_t items, int 
 		} ;
 
 	return ;
-} /* test_read_int */
+} /* test_read_int_or_die */
 
 void
 test_read_float_or_die (SNDFILE *file, int pass, float *test, sf_count_t items, int line_num)
@@ -675,7 +674,7 @@ test_read_float_or_die (SNDFILE *file, int pass, float *test, sf_count_t items, 
 		} ;
 
 	return ;
-} /* test_read_float */
+} /* test_read_float_or_die */
 
 void
 test_read_double_or_die (SNDFILE *file, int pass, double *test, sf_count_t items, int line_num)
@@ -693,7 +692,7 @@ test_read_double_or_die (SNDFILE *file, int pass, double *test, sf_count_t items
 		} ;
 
 	return ;
-} /* test_read_double */
+} /* test_read_double_or_die */
 
 
 void
@@ -712,7 +711,7 @@ test_readf_short_or_die (SNDFILE *file, int pass, short *test, sf_count_t frames
 		} ;
 
 	return ;
-} /* test_readf_short */
+} /* test_readf_short_or_die */
 
 void
 test_readf_int_or_die (SNDFILE *file, int pass, int *test, sf_count_t frames, int line_num)
@@ -730,7 +729,7 @@ test_readf_int_or_die (SNDFILE *file, int pass, int *test, sf_count_t frames, in
 		} ;
 
 	return ;
-} /* test_readf_int */
+} /* test_readf_int_or_die */
 
 void
 test_readf_float_or_die (SNDFILE *file, int pass, float *test, sf_count_t frames, int line_num)
@@ -748,7 +747,7 @@ test_readf_float_or_die (SNDFILE *file, int pass, float *test, sf_count_t frames
 		} ;
 
 	return ;
-} /* test_readf_float */
+} /* test_readf_float_or_die */
 
 void
 test_readf_double_or_die (SNDFILE *file, int pass, double *test, sf_count_t frames, int line_num)
@@ -766,8 +765,26 @@ test_readf_double_or_die (SNDFILE *file, int pass, double *test, sf_count_t fram
 		} ;
 
 	return ;
-} /* test_readf_double */
+} /* test_readf_double_or_die */
 
+
+void
+test_read_raw_or_die (SNDFILE *file, int pass, void *test, sf_count_t items, int line_num)
+{	sf_count_t count ;
+
+	if ((count = sf_read_raw (file, test, items)) != items)
+	{	printf ("\n\nLine %d", line_num) ;
+		if (pass > 0)
+			printf (" (pass %d)", pass) ;
+		printf (" : sf_read_raw failed with short read (%ld => %ld).\n",
+						SF_COUNT_TO_LONG (items), SF_COUNT_TO_LONG (count)) ;
+		fflush (stdout) ;
+		puts (sf_strerror (file)) ;
+		exit (1) ;
+		} ;
+
+	return ;
+} /* test_read_raw_or_die */
 
 
 
@@ -787,7 +804,7 @@ test_write_short_or_die (SNDFILE *file, int pass, const short *test, sf_count_t 
 		} ;
 
 	return ;
-} /* test_write_short */
+} /* test_write_short_or_die */
 
 void
 test_write_int_or_die (SNDFILE *file, int pass, const int *test, sf_count_t items, int line_num)
@@ -805,7 +822,7 @@ test_write_int_or_die (SNDFILE *file, int pass, const int *test, sf_count_t item
 		} ;
 
 	return ;
-} /* test_write_int */
+} /* test_write_int_or_die */
 
 void
 test_write_float_or_die (SNDFILE *file, int pass, const float *test, sf_count_t items, int line_num)
@@ -823,7 +840,7 @@ test_write_float_or_die (SNDFILE *file, int pass, const float *test, sf_count_t 
 		} ;
 
 	return ;
-} /* test_write_float */
+} /* test_write_float_or_die */
 
 void
 test_write_double_or_die (SNDFILE *file, int pass, const double *test, sf_count_t items, int line_num)
@@ -841,7 +858,7 @@ test_write_double_or_die (SNDFILE *file, int pass, const double *test, sf_count_
 		} ;
 
 	return ;
-} /* test_write_double */
+} /* test_write_double_or_die */
 
 
 void
@@ -860,7 +877,7 @@ test_writef_short_or_die (SNDFILE *file, int pass, const short *test, sf_count_t
 		} ;
 
 	return ;
-} /* test_writef_short */
+} /* test_writef_short_or_die */
 
 void
 test_writef_int_or_die (SNDFILE *file, int pass, const int *test, sf_count_t frames, int line_num)
@@ -878,7 +895,7 @@ test_writef_int_or_die (SNDFILE *file, int pass, const int *test, sf_count_t fra
 		} ;
 
 	return ;
-} /* test_writef_int */
+} /* test_writef_int_or_die */
 
 void
 test_writef_float_or_die (SNDFILE *file, int pass, const float *test, sf_count_t frames, int line_num)
@@ -896,7 +913,7 @@ test_writef_float_or_die (SNDFILE *file, int pass, const float *test, sf_count_t
 		} ;
 
 	return ;
-} /* test_writef_float */
+} /* test_writef_float_or_die */
 
 void
 test_writef_double_or_die (SNDFILE *file, int pass, const double *test, sf_count_t frames, int line_num)
@@ -914,7 +931,26 @@ test_writef_double_or_die (SNDFILE *file, int pass, const double *test, sf_count
 		} ;
 
 	return ;
-} /* test_writef_double */
+} /* test_writef_double_or_die */
+
+
+void
+test_write_raw_or_die (SNDFILE *file, int pass, const void *test, sf_count_t items, int line_num)
+{	sf_count_t count ;
+
+	if ((count = sf_write_raw (file, test, items)) != items)
+	{	printf ("\n\nLine %d", line_num) ;
+		if (pass > 0)
+			printf (" (pass %d)", pass) ;
+		printf (" : sf_write_raw failed with short write (%ld => %ld).\n",
+						SF_COUNT_TO_LONG (items), SF_COUNT_TO_LONG (count)) ;
+		fflush (stdout) ;
+		puts (sf_strerror (file)) ;
+		exit (1) ;
+		} ;
+
+	return ;
+} /* test_write_raw_or_die */
 
 
 void

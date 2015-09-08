@@ -1,6 +1,6 @@
 [+ AutoGen5 template h c +]
 /*
-** Copyright (C) 2002-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2002-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -37,9 +37,11 @@ extern "C" {
 #define SF_COUNT_TO_LONG(x)	((long) (x))
 #define	ARRAY_LEN(x)		((int) (sizeof (x)) / (sizeof ((x) [0])))
 #define SIGNED_SIZEOF(x)	((int64_t) (sizeof (x)))
+#define	NOT(x)				(! (x))
 
 #define	PIPE_INDEX(x)	((x) + 500)
 #define	PIPE_TEST_LEN	12345
+
 
 [+ FOR float_type
 +]void gen_windowed_sine_[+ (get "name") +] ([+ (get "name") +] *data, int len, double maximum) ;
@@ -85,6 +87,21 @@ void	check_open_file_count_or_die (int lineno) ;
 
 #ifdef SNDFILE_H
 
+static inline void
+sf_info_clear (SF_INFO * info)
+{	memset (info, 0, sizeof (SF_INFO)) ;
+} /* sf_info_clear */
+
+static inline void
+sf_info_setup (SF_INFO * info, int format, int samplerate, int channels)
+{	sf_info_clear (info) ;
+
+	info->format = format ;
+	info->samplerate = samplerate ;
+	info->channels = channels ;
+} /* sf_info_setup */
+
+
 void 	dump_log_buffer (SNDFILE *file) ;
 void 	check_log_buffer_or_die (SNDFILE *file, int line_num) ;
 int 	string_in_log_buffer (SNDFILE *file, const char *s) ;
@@ -106,11 +123,17 @@ void	test_seek_or_die
 			(SNDFILE *file, int pass, [+ (get "io_element") +] *test, sf_count_t [+ (get "count_name") +], int line_num) ;
 [+ ENDFOR io_type +][+ ENDFOR read_op +]
 
+void
+test_read_raw_or_die (SNDFILE *file, int pass, void *test, sf_count_t items, int line_num) ;
+
 [+ FOR write_op +]
 [+ FOR io_type
 +]void 	test_[+ (get "op_element") +]_[+ (get "io_element") +]_or_die
 			(SNDFILE *file, int pass, const [+ (get "io_element") +] *test, sf_count_t [+ (get "count_name") +], int line_num) ;
 [+ ENDFOR io_type +][+ ENDFOR write_op +]
+
+void
+test_write_raw_or_die (SNDFILE *file, int pass, const void *test, sf_count_t items, int line_num) ;
 
 [+ FOR io_type
 +]void compare_[+ (get "io_element") +]_or_die (const [+ (get "io_element") +] *left, const [+ (get "io_element") +] *right, unsigned count, int line_num) ;
@@ -337,7 +360,7 @@ check_log_buffer_or_die (SNDFILE *file, int line_num)
 {	static char	buffer [LOG_BUFFER_SIZE] ;
 	int			count ;
 
-	memset (buffer, 0, LOG_BUFFER_SIZE) ;
+	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Get the log buffer data. */
 	count = sf_command	(file, SFC_GET_LOG_INFO, buffer, LOG_BUFFER_SIZE) ;
@@ -376,7 +399,7 @@ string_in_log_buffer (SNDFILE *file, const char *s)
 {	static char	buffer [LOG_BUFFER_SIZE] ;
 	int			count ;
 
-	memset (buffer, 0, LOG_BUFFER_SIZE) ;
+	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Get the log buffer data. */
 	count = sf_command	(file, SFC_GET_LOG_INFO, buffer, LOG_BUFFER_SIZE) ;
@@ -445,12 +468,11 @@ hexdump_file (const char * filename, sf_count_t offset, sf_count_t length)
 void
 dump_log_buffer (SNDFILE *file)
 {	static char	buffer [LOG_BUFFER_SIZE] ;
-	int			count ;
 
-	memset (buffer, 0, LOG_BUFFER_SIZE) ;
+	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Get the log buffer data. */
-	count = sf_command	(file, SFC_GET_LOG_INFO, buffer, LOG_BUFFER_SIZE) ;
+	sf_command	(file, SFC_GET_LOG_INFO, buffer, LOG_BUFFER_SIZE) ;
 
 	if (strlen (buffer) < 1)
 		puts ("Log buffer empty.\n") ;
@@ -636,8 +658,26 @@ test_[+ (get "op_element") +]_[+ (get "io_element") +]_or_die (SNDFILE *file, in
 		} ;
 
 	return ;
-} /* test_[+ (get "op_element") +]_[+ (get "io_element") +] */
+} /* test_[+ (get "op_element") +]_[+ (get "io_element") +]_or_die */
 [+ ENDFOR io_type +][+ ENDFOR read_op +]
+
+void
+test_read_raw_or_die (SNDFILE *file, int pass, void *test, sf_count_t items, int line_num)
+{	sf_count_t count ;
+
+	if ((count = sf_read_raw (file, test, items)) != items)
+	{	printf ("\n\nLine %d", line_num) ;
+		if (pass > 0)
+			printf (" (pass %d)", pass) ;
+		printf (" : sf_read_raw failed with short read (%ld => %ld).\n",
+						SF_COUNT_TO_LONG (items), SF_COUNT_TO_LONG (count)) ;
+		fflush (stdout) ;
+		puts (sf_strerror (file)) ;
+		exit (1) ;
+		} ;
+
+	return ;
+} /* test_read_raw_or_die */
 
 [+ FOR write_op +]
 [+ FOR io_type +]
@@ -657,8 +697,27 @@ test_[+ (get "op_element") +]_[+ (get "io_element") +]_or_die (SNDFILE *file, in
 		} ;
 
 	return ;
-} /* test_[+ (get "op_element") +]_[+ (get "io_element") +] */
+} /* test_[+ (get "op_element") +]_[+ (get "io_element") +]_or_die */
 [+ ENDFOR io_type +][+ ENDFOR write_op +]
+
+void
+test_write_raw_or_die (SNDFILE *file, int pass, const void *test, sf_count_t items, int line_num)
+{	sf_count_t count ;
+
+	if ((count = sf_write_raw (file, test, items)) != items)
+	{	printf ("\n\nLine %d", line_num) ;
+		if (pass > 0)
+			printf (" (pass %d)", pass) ;
+		printf (" : sf_write_raw failed with short write (%ld => %ld).\n",
+						SF_COUNT_TO_LONG (items), SF_COUNT_TO_LONG (count)) ;
+		fflush (stdout) ;
+		puts (sf_strerror (file)) ;
+		exit (1) ;
+		} ;
+
+	return ;
+} /* test_write_raw_or_die */
+
 
 [+ FOR io_type
 +]void

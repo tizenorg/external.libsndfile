@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (C) 2003-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+# Copyright (C) 2003-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 #
 # All rights reserved.
 #
@@ -157,7 +157,7 @@ if len (sys.argv) != 3:
 os_name = sys.argv [1]
 version = re.sub ("\.[a-z0-9]+$", "", sys.argv [2])
 
-if os_name == "linux":
+if os_name == "linux" or os_name == "gnu" or os_name == "binutils":
 	linux_symbols (progname, version)
 elif os_name == "darwin":
 	darwin_symbols (progname, version)

@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2004-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2004-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2004 Tobias Gehrig <tgehrig@ira.uka.de>
 **
 ** This program is free software ; you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 #include	"sndfile.h"
 #include	"common.h"
 
-#if HAVE_EXTERNAL_LIBS
+#if 0
 
 #include	<FLAC/stream_decoder.h>
 #include	<FLAC/stream_encoder.h>
@@ -371,7 +371,9 @@ sf_flac_meta_get_vorbiscomments (SF_PRIVATE *psf, const FLAC__StreamMetadata *me
 		{ "comment", SF_STR_COMMENT },
 		{ "date", SF_STR_DATE },
 		{ "album", SF_STR_ALBUM },
-		{ "license", SF_STR_LICENSE }
+		{ "license", SF_STR_LICENSE },
+		{ "tracknumber", SF_STR_TRACKNUMBER },
+		{ "genre", SF_STR_GENRE }
 		} ;
 
 	const char *value, *cptr ;
@@ -405,7 +407,14 @@ sf_flac_meta_callback (const FLAC__StreamDecoder * UNUSED (decoder), const FLAC_
 			psf->sf.samplerate = metadata->data.stream_info.sample_rate ;
 			psf->sf.frames = metadata->data.stream_info.total_samples ;
 
-			psf_log_printf (psf, "FLAC Stream Metadata\n  Channels    : %d\n  Sample rate : %d\n  Frames      : %D\n", psf->sf.channels, psf->sf.samplerate, psf->sf.frames) ;
+			psf_log_printf (psf, "FLAC Stream Metadata\n  Channels    : %d\n  Sample rate : %d\n", psf->sf.channels, psf->sf.samplerate) ;
+
+			if (psf->sf.frames == 0)
+			{	psf_log_printf (psf, "  Frames      : 0 (bumping to SF_COUNT_MAX)\n") ;
+				psf->sf.frames = SF_COUNT_MAX ;
+				}
+			else
+				psf_log_printf (psf, "  Frames      : %D\n", psf->sf.frames) ;
 
 			switch (metadata->data.stream_info.bits_per_sample)
 			{	case 8 :
@@ -564,6 +573,12 @@ flac_write_strings (SF_PRIVATE *psf, FLAC_PRIVATE* pflac)
 				break ;
 			case SF_STR_LICENSE :
 				key = "license" ;
+				break ;
+			case SF_STR_TRACKNUMBER :
+				key = "tracknumber" ;
+				break ;
+			case SF_STR_GENRE :
+				key = "genre" ;
 				break ;
 			default :
 				continue ;

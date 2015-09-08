@@ -11,11 +11,14 @@ DIST_SUBDIRS = M4 man doc Win32 src Octave examples regtest tests programs
 
 EXTRA_DIST = libsndfile.spec.in sndfile.pc.in
 
+CLEANFILES = *~
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = sndfile.pc
 
 m4datadir = $(datadir)/aclocal
+
+#===============================================================================
 
 test: check-recursive
 
@@ -24,6 +27,9 @@ genfiles :
 	(cd src ; make genfiles)
 	(cd tests ; make genfiles)
 
+checkprograms :
+	(cd src ; make libsndfile.la checkprograms)
+	(cd tests ; make checkprograms)
 
 testprogs :
 	(cd src ; make testprogs)

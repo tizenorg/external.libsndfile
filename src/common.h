@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 1999-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 1999-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU Lesser General Public License as published by
@@ -22,6 +22,7 @@
 #include "sfconfig.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #if HAVE_STDINT_H
 #include <stdint.h>
@@ -89,6 +90,8 @@
 
 #define		ARRAY_LEN(x)	((int) (sizeof (x) / sizeof ((x) [0])))
 
+#define		NOT(x)			(! (x))
+
 #if (COMPILER_IS_GCC == 1)
 #define		SF_MAX(x,y)		({ \
 								typeof (x) sf_max_x1 = (x) ; \
@@ -109,6 +112,7 @@
 
 #define		SF_MAX_CHANNELS	256
 
+
 /*
 *	Macros for spliting the format file of SF_INFI into contrainer type,
 **	codec type and endian-ness.
@@ -116,7 +120,6 @@
 #define SF_CONTAINER(x)		((x) & SF_FORMAT_TYPEMASK)
 #define SF_CODEC(x)			((x) & SF_FORMAT_SUBMASK)
 #define SF_ENDIAN(x)		((x) & SF_FORMAT_ENDMASK)
-
 
 enum
 {	/* PEAK chunk location. */
@@ -148,6 +151,8 @@ enum
 
 enum
 {	/* Work in progress. */
+	SF_FORMAT_SPEEX			= 0x5000000,
+	SF_FORMAT_OGGFLAC		= 0x5000001,
 
 	/* Formats supported read only. */
 	SF_FORMAT_TXW			= 0x4030000,		/* Yamaha TX16 sampler file */
@@ -219,6 +224,14 @@ make_size_t (int x)
 {	return (size_t) x ;
 } /* size_t_of_int */
 
+typedef SF_BROADCAST_INFO_VAR (16 * 1024) SF_BROADCAST_INFO_16K ;
+
+#if SIZEOF_WCHAR_T == 2
+typedef wchar_t	sfwchar_t ;
+#else
+typedef int16_t sfwchar_t ;
+#endif
+
 /*
 **	This version of isprint specifically ignores any locale info. Its used for
 **	determining which characters can be printed in things like hexdumps.
@@ -233,19 +246,6 @@ psf_isprint (int ch)
 **	sf_open_XXXX functions. The caller however has no knowledge of the struct's
 **	contents.
 */
-
-
-typedef struct
-{	int size ;
-	SF_BROADCAST_INFO binfo ;
-} PSF_BROADCAST_VAR ;
-
-#if SIZEOF_WCHAR_T == 2
-typedef wchar_t	sfwchar_t ;
-#else
-typedef int16_t sfwchar_t ;
-#endif
-
 
 typedef struct
 {
@@ -368,7 +368,7 @@ typedef struct sf_private_tag
 	SF_INSTRUMENT	*instrument ;
 
 	/* Broadcast (EBU) Info */
-	PSF_BROADCAST_VAR *broadcast_var ;
+	SF_BROADCAST_INFO_16K *broadcast_16k ;
 
 	/* Channel map data (if present) : an array of ints. */
 	int				*channel_map ;
@@ -498,6 +498,7 @@ enum
 	SFE_RDWR_BAD_HEADER,
 	SFE_CMD_HAS_DATA,
 	SFE_BAD_BROADCAST_INFO_SIZE,
+	SFE_BAD_BROADCAST_INFO_TOO_BIG,
 
 	SFE_STR_NO_SUPPORT,
 	SFE_STR_NOT_WRITE,
@@ -551,6 +552,7 @@ enum
 	SFE_PAF_VERSION,
 	SFE_PAF_UNKNOWN_FORMAT,
 	SFE_PAF_SHORT_HEADER,
+	SFE_PAF_BAD_CHANNELS,
 
 	SFE_SVX_NO_FORM,
 	SFE_SVX_NO_BODY,
@@ -658,6 +660,7 @@ void	psf_log_SF_INFO 	(SF_PRIVATE *psf) ;
 int32_t	psf_rand_int32 (void) ;
 
 void append_snprintf (char * dest, size_t maxlen, const char * fmt, ...) ;
+void psf_strlcpy_crlf (char *dest, const char *src, size_t destmax, size_t srcmax) ;
 
 /* Functions used when writing file headers. */
 
@@ -773,6 +776,11 @@ int		rf64_open	(SF_PRIVATE *psf) ;
 
 /* In progress. Do not currently work. */
 
+int		ogg_vorbis_open	(SF_PRIVATE *psf) ;
+int		ogg_speex_open	(SF_PRIVATE *psf) ;
+int		ogg_pcm_open	(SF_PRIVATE *psf) ;
+
+
 int		mpeg_open	(SF_PRIVATE *psf) ;
 int		ogg_open	(SF_PRIVATE *psf) ;
 int		rx2_open	(SF_PRIVATE *psf) ;
@@ -824,6 +832,30 @@ void pchk4_store (PRIV_CHUNK4 * pchk, int marker, sf_count_t offset, sf_count_t 
 int pchk4_find (PRIV_CHUNK4 * pchk, int marker) ;
 
 /*------------------------------------------------------------------------------------
+** Functions that work like OpenBSD's strlcpy/strlcat to replace strncpy/strncat.
+**
+** See : http://www.gratisoft.us/todd/papers/strlcpy.html
+**
+** These functions are available on *BSD, but are not avaialble everywhere so we
+** implement them here.
+**
+** The argument order has been changed to that of strncpy/strncat to cause
+** compiler errors if code is carelessly converted from one to the other.
+*/
+
+static inline void
+psf_strlcat (char *dest, size_t n, const char *src)
+{	strncat (dest, src, n - strlen (dest) - 1) ;
+	dest [n - 1] = 0 ;
+} /* psf_strlcat */
+
+static inline void
+psf_strlcpy (char *dest, size_t n, const char *src)
+{	strncpy (dest, src, n - 1) ;
+	dest [n - 1] = 0 ;
+} /* psf_strlcpy */
+
+/*------------------------------------------------------------------------------------
 ** Other helper functions.
 */
 
@@ -836,7 +868,7 @@ void	psf_sanitize_string (char * cptr, int len) ;
 /* Generate the current date as a string. */
 void	psf_get_date_str (char *str, int maxlen) ;
 
-PSF_BROADCAST_VAR* broadcast_var_alloc (size_t datasize) ;
+SF_BROADCAST_INFO_16K * broadcast_var_alloc (void) ;
 int		broadcast_var_set (SF_PRIVATE *psf, const SF_BROADCAST_INFO * data, size_t datasize) ;
 int		broadcast_var_get (SF_PRIVATE *psf, SF_BROADCAST_INFO * data, size_t datasize) ;
 
@@ -847,7 +879,7 @@ typedef struct
 } AUDIO_DETECT ;
 
 int audio_detect (SF_PRIVATE * psf, AUDIO_DETECT *ad, const unsigned char * data, int datalen) ;
-
+int id3_skip (SF_PRIVATE * psf) ;
 
 /*------------------------------------------------------------------------------------
 ** Helper/debug functions.

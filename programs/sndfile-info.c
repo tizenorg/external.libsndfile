@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 1999-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 1999-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** All rights reserved.
 **
@@ -48,7 +48,7 @@
 #endif
 
 static void print_version (void) ;
-static void print_usage (const char *progname) ;
+static void usage_exit (const char *progname) ;
 
 static void info_dump (const char *filename) ;
 static int	instrument_dump (const char *filename) ;
@@ -65,12 +65,7 @@ main (int argc, char *argv [])
 	print_version () ;
 
 	if (argc < 2 || strcmp (argv [1], "--help") == 0 || strcmp (argv [1], "-h") == 0)
-	{	char *progname ;
-
-		progname = strrchr (argv [0], '/') ;
-		progname = progname ? progname + 1 : argv [0] ;
-
-		print_usage (progname) ;
+	{	usage_exit (program_name (argv [0])) ;
 		return 1 ;
 		} ;
 
@@ -123,7 +118,7 @@ print_version (void)
 
 
 static void
-print_usage (const char *progname)
+usage_exit (const char *progname)
 {	printf ("Usage :\n  %s <file> ...\n", progname) ;
 	printf ("    Prints out information about one or more sound files.\n\n") ;
 	printf ("  %s -i <file>\n", progname) ;
@@ -143,7 +138,9 @@ print_usage (const char *progname)
 		*/
 		Sleep (5 * 1000) ;
 #endif
-} /* print_usage */
+	printf ("Using %s.\n\n", sf_version_string ()) ;
+	exit (0) ;
+} /* usage_exit */
 
 /*==============================================================================
 **	Dumping of sndfile info.
@@ -256,7 +253,12 @@ info_dump (const char *filename)
 	printf ("----------------------------------------\n") ;
 
 	printf ("Sample Rate : %d\n", sfinfo.samplerate) ;
-	printf ("Frames      : %" PRId64 "\n", sfinfo.frames) ;
+
+	if (sfinfo.frames == SF_COUNT_MAX)
+		printf ("Frames      : unknown\n") ;
+	else
+		printf ("Frames      : %" PRId64 "\n", sfinfo.frames) ;
+
 	printf ("Channels    : %d\n", sfinfo.channels) ;
 	printf ("Format      : 0x%08X\n", sfinfo.format) ;
 	printf ("Sections    : %d\n", sfinfo.sections) ;

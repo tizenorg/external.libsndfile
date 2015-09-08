@@ -1,0 +1,21 @@
+<manifest>
+	<request>
+		<domain name="_" />
+	</request>
+	<define>
+		<domain name="libsndfile" />
+	</define>
+	<assign>
+		<filesystem path="/usr/bin/sndfile-cmp" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-concat" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-convert" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-deinterleave" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-info" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-interleave" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-metadata-get" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-metadata-set" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-play" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-regtest" exec_label="none" />
+		<filesystem path="/usr/bin/sndfile-salvage" exec_label="none" />
+	</assign>
+</manifest>

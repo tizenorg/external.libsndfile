@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2001-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2001-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
@@ -103,7 +104,7 @@ show_fstat_error (void)
 	static char data [256] ;
 
 	STATBUF 	statbuf ;
-	int fd, mode, flags, ignored ;
+	int fd, mode, flags ;
 
 	if (sizeof (statbuf.st_size) != sizeof (INT64))
 	{	printf ("\n\nLine %d: Error, sizeof (statbuf.st_size) != 8.\n\n", __LINE__) ;
@@ -119,7 +120,7 @@ show_fstat_error (void)
 	{	printf ("\n\nLine %d: open() failed : %s\n\n", __LINE__, strerror (errno)) ;
 		return ;
 		} ;
-	ignored = write (fd, data, sizeof (data)) ;
+	assert (write (fd, data, sizeof (data)) > 0) ;
 	close (fd) ;
 
 	printf ("1) Re-open file in read/write mode and write another %d bytes at the end.\n", SIGNED_SIZEOF (data)) ;
@@ -130,7 +131,7 @@ show_fstat_error (void)
 		return ;
 		} ;
 	LSEEK (fd, 0, SEEK_END) ;
-	ignored = write (fd, data, sizeof (data)) ;
+	assert (write (fd, data, sizeof (data)) > 0) ;
 
 	printf ("2) Now use system (\"%s %s\") to show the file length.\n\n", dir_cmd, filename) ;
 
@@ -140,7 +141,7 @@ show_fstat_error (void)
 	strncat (data, " ", sizeof (data) - 1 - strlen (data)) ;
 	strncat (data, filename, sizeof (data) - 1 - strlen (data)) ;
 
-	ignored = system (data) ;
+	assert (system (data) >= 0) ;
 	puts ("") ;
 
 	printf ("3) Now use fstat() to get the file length.\n") ;
@@ -168,7 +169,7 @@ show_lseek_error (void)
 	static char data [256] ;
 
 	INT64	retval ;
-	int fd, mode, flags, ignored ;
+	int fd, mode, flags ;
 
 	puts ("\n64 bit lseek() test.\n--------------------") ;
 
@@ -179,7 +180,7 @@ show_lseek_error (void)
 	{	printf ("\n\nLine %d: open() failed : %s\n\n", __LINE__, strerror (errno)) ;
 		return ;
 		} ;
-	ignored = write (fd, data, sizeof (data)) ;
+	assert (write (fd, data, sizeof (data)) > 0) ;
 	close (fd) ;
 
 	printf ("1) Re-open file in read/write mode and write another %d bytes at the end.\n", SIGNED_SIZEOF (data)) ;
@@ -191,7 +192,7 @@ show_lseek_error (void)
 		} ;
 
 	LSEEK (fd, 0, SEEK_END) ;
-	ignored = write (fd, data, sizeof (data)) ;
+	assert (write (fd, data, sizeof (data)) > 0) ;
 
 	printf ("2) Now use system (\"%s %s\") to show the file length.\n\n", dir_cmd, filename) ;
 
@@ -201,7 +202,7 @@ show_lseek_error (void)
 	strncat (data, " ", sizeof (data) - 1 - strlen (data)) ;
 	strncat (data, filename, sizeof (data) - 1 - strlen (data)) ;
 
-	ignored = system (data) ;
+	assert (system (data) >= 0) ;
 	puts ("") ;
 
 	printf ("3) Now use lseek() to go to the end of the file.\n") ;
@@ -226,7 +227,7 @@ show_stat_fstat_error (void)
 	static char data [256] ;
 
 	int fd, mode, flags ;
-	int stat_size, fstat_size, ignored ;
+	int stat_size, fstat_size ;
 	struct stat buf ;
 
 	/* Known to fail on WinXP. */
@@ -241,7 +242,7 @@ show_stat_fstat_error (void)
 		return ;
 		} ;
 
-	ignored = write (fd, data, sizeof (data)) ;
+	assert (write (fd, data, sizeof (data)) > 0) ;
 
 	printf ("1) Now call stat and fstat on the file and retreive the file lengths.\n") ;
 
@@ -279,7 +280,7 @@ write_to_closed_file (void)
 {	const char * filename = "closed_write_test.txt" ;
 	struct stat buf ;
 	FILE * file ;
-	int		fd, ignored ;
+	int		fd ;
 
 	puts ("\nWrite to closed file test.\n--------------------------") ;
 
@@ -293,12 +294,12 @@ write_to_closed_file (void)
 	fd = fileno (file) ;
 
 	printf ("2) Write some text via the file descriptor.\n") ;
-	ignored = write (fd, "a\n", 2) ;
+	assert (write (fd, "a\n", 2) > 0) ;
 
 	printf ("3) Now we close the file using fclose().\n") ;
 	fclose (file) ;
 
-	stat (filename, &buf);
+	stat (filename, &buf) ;
 	printf ("   File size is %d bytes.\n", (int) buf.st_size) ;
 
 	printf ("4) Now write more data to the file descriptor which should fail.\n") ;
@@ -307,7 +308,7 @@ write_to_closed_file (void)
 	else
 	{	printf ("5) Attempting to write to a closed file should have failed but didn't! *** WRONG ***\n") ;
 
-		stat (filename, &buf);
+		stat (filename, &buf) ;
 		printf ("   File size is %d bytes.\n", (int) buf.st_size) ;
 		} ;
 

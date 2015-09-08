@@ -1,9 +1,10 @@
-# Copyright (C) 1999-2009 Erik de Castro Lopo (erikd AT mega-nerd DOT com).
+# Copyright (C) 1999-2011 Erik de Castro Lopo (erikd AT mega-nerd DOT com).
 
 dnl Require autoconf version
 AC_PREREQ(2.57)
 
-AC_INIT([libsndfile],[1.0.21],[erikd@mega-nerd.com])
+AC_INIT([libsndfile],[1.0.25],[sndfile@mega-nerd.com],
+		[libsndfile],[http://www.mega-nerd.com/libsndfile/])
 
 # Put config stuff in Cfg.
 AC_CONFIG_AUX_DIR(Cfg)
@@ -15,11 +16,29 @@ AC_CONFIG_MACRO_DIR([M4])
 AC_CONFIG_HEADERS([src/config.h])
 
 AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION)
+AM_SILENT_RULES([yes])
 
 dnl Add parameters for aclocal
 AC_SUBST(ACLOCAL_AMFLAGS, "-I M4")
 
 AC_LANG([C])
+
+AC_PROG_CC
+AM_PROG_CC_C_O
+AC_PROG_CXX
+AC_PROG_SED
+
+# Do not check for F77.
+define([AC_LIBTOOL_LANG_F77_CONFIG], [:])dnl
+
+AM_PROG_LIBTOOL
+LT_PROG_RC
+
+AC_CHECK_PROG(HAVE_AUTOGEN, autogen, yes, no)
+AC_CHECK_PROG(HAVE_WINE, wine, yes, no)
+
+AC_PROG_INSTALL
+AC_PROG_LN_S
 
 #------------------------------------------------------------------------------------
 # Rules for library version information:
@@ -37,22 +56,12 @@ AC_LANG([C])
 #  6. If any interfaces have been removed since the last public release, then set age
 #     to 0.
 
-SHARED_VERSION_INFO="1:21:0"
+CLEAN_VERSION=`echo $PACKAGE_VERSION | $SED "s/p.*//"`
+VERSION_MINOR=`echo $CLEAN_VERSION | $SED "s/.*\.//"`
 
-AC_PROG_CC
-AM_PROG_CC_C_O
-AC_PROG_CXX
+SHARED_VERSION_INFO="1:$VERSION_MINOR:0"
 
-# Do not check for F77.
-define([AC_LIBTOOL_LANG_F77_CONFIG], [:])dnl
-
-AM_PROG_LIBTOOL
-
-AC_CHECK_PROG(HAVE_AUTOGEN, autogen, yes, no)
-AC_CHECK_PROG(HAVE_WINE, wine, yes, no)
-
-AC_PROG_INSTALL
-AC_PROG_LN_S
+#------------------------------------------------------------------------------------
 
 AC_HEADER_STDC
 
@@ -125,7 +134,7 @@ AC_ARG_ENABLE(alsa,
 	AC_HELP_STRING([--disable-alsa], [disable use of ALSA]))
 
 AC_ARG_ENABLE(external-libs,
-	AC_HELP_STRING([--disable-external-libs], [disable use of FLAC, Ogg and Vorbis [[default=no]]]))
+	AC_HELP_STRING([--disable-external-libs], [disable use of Ogg and Vorbis [[default=no]]]))
 
 AC_ARG_ENABLE(octave,
 	AC_HELP_STRING([--enable-octave], [disable building of GNU Octave module]))
@@ -168,7 +177,7 @@ case "$host_os" in
 	*)
 		if test "x$ac_cv_sizeof_off_t" = "x8" ; then
 			# If sizeof (off_t) is 8, no further checking is needed.
-			TYPEOF_SF_COUNT_T="off_t"
+			TYPEOF_SF_COUNT_T="int64_t"
 			SF_COUNT_MAX="0x7FFFFFFFFFFFFFFFLL"
 			SIZEOF_SF_COUNT_T=8
 		else
@@ -178,10 +187,10 @@ case "$host_os" in
 
 			TYPEOF_SF_COUNT_T="unknown"
 			if test "x$ac_cv_sizeof_loff_t" = "x8" ; then
-				TYPEOF_SF_COUNT_T="loff_t"
+				TYPEOF_SF_COUNT_T="int64_t"
 				SIZEOF_SF_COUNT_T=8
 			elif test "x$ac_cv_sizeof_off64_t" = "x8" ; then
-				TYPEOF_SF_COUNT_T="off64_t"
+				TYPEOF_SF_COUNT_T="int64_t"
 				SIZEOF_SF_COUNT_T=8
 				fi
 
@@ -206,6 +215,7 @@ case "$host_os" in
 			AC_CHECK_SIZEOF(off_t,1)	# Fake default value.
 
 			if test "x$ac_cv_sizeof_off_t" = "x8" ; then
+				TYPEOF_SF_COUNT_T="int64_t"
 				SF_COUNT_MAX="0x7FFFFFFFFFFFFFFFLL"
 			elif test "x$ac_cv_sizeof_off_t" = "x$pre_largefile_sizeof_off_t" ; then
 				AC_MSG_WARN([[This machine does not seem to support 64 bit file offsets.]])
@@ -262,6 +272,7 @@ AC_CHECK_FUNCS(snprintf vsnprintf)
 AC_CHECK_FUNCS(gmtime gmtime_r localtime localtime_r gettimeofday)
 AC_CHECK_FUNCS(mmap getpagesize)
 AC_CHECK_FUNCS(setlocale)
+AC_CHECK_FUNCS(pipe waitpid)
 
 AC_CHECK_LIB([m],floor)
 AC_CHECK_FUNCS(floor ceil fmod)
@@ -284,7 +295,7 @@ else
 	fi
 
 #====================================================================================
-# Check for Ogg, Vorbis and FLAC.
+# Check for Ogg, Vorbis.
 
 HAVE_EXTERNAL_LIBS=0
 EXTERNAL_CFLAGS=""
@@ -293,40 +304,47 @@ EXTERNAL_LIBS=""
 # Check for pkg-config outside the if statement.
 PKG_PROG_PKG_CONFIG
 
-if test x$enable_external_libs = xno ; then
-	AC_MSG_WARN([[*** External libs (FLAC, Ogg, Vorbis) disabled. ***]])
-else
-	PKG_CHECK_MOD_VERSION(FLAC, flac >= 1.2.1, ac_cv_flac=yes, ac_cv_flac=no)
-	PKG_CHECK_MOD_VERSION(OGG, ogg >= 1.1.3, ac_cv_ogg=yes, ac_cv_ogg=no)
+if test -n "$PKG_CONFIG" ; then
+	if test x$enable_external_libs = xno ; then
+		AC_MSG_WARN([[*** External libs (Ogg, Vorbis) disabled. ***]])
+	else
+		PKG_CHECK_MOD_VERSION(OGG, ogg >= 1.1.3, ac_cv_ogg=yes, ac_cv_ogg=no)
 
-	# Vorbis versions earlier than 1.2.3 have bugs that cause the libsndfile
-	# test suite to fail on MIPS, PowerPC and others.
-	# See: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=549899
-	PKG_CHECK_MOD_VERSION(VORBIS, vorbis >= 1.2.3, ac_cv_vorbis=yes, ac_cv_vorbis=no)
-	PKG_CHECK_MOD_VERSION(VORBISENC, vorbisenc >= 1.2.3, ac_cv_vorbisenc=yes, ac_cv_vorbisenc=no)
-	enable_external_libs=yes
+		if test x$enable_experimental = xyes ; then
+			PKG_CHECK_MOD_VERSION(SPEEX, speex >= 1.2, ac_cv_speex=yes, ac_cv_speex=no)
+		else
+			SPEEX_CFLAGS=""
+			SPEEX_LIBS=""
+			fi
+
+		# Vorbis versions earlier than 1.2.3 have bugs that cause the libsndfile
+		# test suite to fail on MIPS, PowerPC and others.
+		# See: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=549899
+		PKG_CHECK_MOD_VERSION(VORBIS, vorbis >= 1.2.3, ac_cv_vorbis=yes, ac_cv_vorbis=no)
+		PKG_CHECK_MOD_VERSION(VORBISENC, vorbisenc >= 1.2.3, ac_cv_vorbisenc=yes, ac_cv_vorbisenc=no)
+		enable_external_libs=yes
+		fi
+
+	if test x$ac_cv_ogg$ac_cv_vorbis$ac_cv_vorbisenc = "xyesyesyes" ; then
+		HAVE_EXTERNAL_LIBS=1
+		enable_external_libs=yes
+
+		EXTERNAL_CFLAGS="$OGG_CFLAGS $VORBISENC_CFLAGS $SPEEX_CFLAGS"
+		EXTERNAL_LIBS="$VORBISENC_LIBS $SPEEX_LIBS"
+	else
+		echo
+		AC_MSG_WARN([[*** One or more of the external libraries (ie libogg and]])
+		AC_MSG_WARN([[*** libvorbis) is either missing (possibly only the development]])
+		AC_MSG_WARN([[*** headers) or is of an unsupported version.]])
+		AC_MSG_WARN([[***]])
+		AC_MSG_WARN([[*** Unfortunately, for ease of maintenance, the external libs]])
+		AC_MSG_WARN([[*** are an all or nothing affair.]])
+		echo
+		enable_external_libs=no
+		fi
 	fi
 
-if test x$ac_cv_flac$ac_cv_ogg$ac_cv_vorbis$ac_cv_vorbisenc = "xyesyesyesyes" ; then
-	HAVE_EXTERNAL_LIBS=1
-	enable_external_libs=yes
-
-	EXTERNAL_CFLAGS="$FLAC_CFLAGS $OGG_CFLAGS $VORBISENC_CFLAGS"
-	EXTERNAL_LIBS="$FLAC_LIBS $VORBISENC_LIBS"
-else
-	AC_MSG_WARN([[
-	
-*** One or more of the external libraries (ie libflac, libogg and
-*** libvorbis) is either missing (possibly only the development
-*** headers) or is of an unsupported version.
-***
-*** Unfortunately, for ease of maintenance, the external libs
-*** are an all or nothing affair.
-]])
-	enable_external_libs=no
-	fi
-
-AC_DEFINE_UNQUOTED([HAVE_EXTERNAL_LIBS], $HAVE_EXTERNAL_LIBS, [Will be set to 1 if flac, ogg and vorbis are available.])
+AC_DEFINE_UNQUOTED([HAVE_EXTERNAL_LIBS], $HAVE_EXTERNAL_LIBS, [Will be set to 1 if ogg and vorbis are available.])
 
 #====================================================================================
 # Check for libsqlite3 (only used in regtest).
@@ -372,7 +390,7 @@ use_windows_api=0
 case "$host_os" in
 	darwin* | rhapsody*)
 		os_is_macosx=1
-		OS_SPECIFIC_CFLAGS="-fpascal-strings -I/Developer/Headers/FlatCarbon"
+		OS_SPECIFIC_CFLAGS="-I/Developer/Headers/FlatCarbon"
 		OS_SPECIFIC_LINKS="-framework CoreAudio"
 		;;
 	mingw*)
@@ -386,6 +404,8 @@ AC_DEFINE_UNQUOTED(OS_IS_WIN32, ${os_is_win32}, [Set to 1 if compiling for Win32
 AC_DEFINE_UNQUOTED(OS_IS_MACOSX, ${os_is_macosx}, [Set to 1 if compiling for MacOSX])
 AC_DEFINE_UNQUOTED(USE_WINDOWS_API, ${use_windows_api}, [Set to 1 to use the native windows API])
 
+AM_CONDITIONAL(USE_WIN_VERSION_FILE, test ${use_windows_api} -eq 1)
+
 #====================================================================================
 # Check for ALSA.
 
@@ -397,6 +417,15 @@ if test x$enable_alsa != xno ; then
 		ALSA_LIBS="-lasound"
 		enable_alsa=yes
 		fi
+	fi
+
+#====================================================================================
+# Check for OpenBSD's sndio.
+
+SNDIO_LIBS=""
+AC_CHECK_HEADERS(sndio.h)
+if test x$ac_cv_header_sndio_h = xyes ; then
+	SNDIO_LIBS="-lsndio"
 	fi
 
 #====================================================================================
@@ -502,12 +531,12 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 		MN_ADD_CFLAGS([-coverage])
 		fi
 
-	CFLAGS="$CFLAGS -Wstrict-prototypes -Wmissing-prototypes -Waggregate-return -Wcast-align -Wcast-qual -Wnested-externs -Wshadow -Wbad-function-cast -Wwrite-strings "
+	CFLAGS="$CFLAGS -Wstrict-prototypes -Wmissing-prototypes -Waggregate-return -Wcast-align -Wcast-qual -Wnested-externs -Wshadow -Wbad-function-cast -Wwrite-strings -Wundef "
 	# -Wundef -Wmissing-declarations -Winline -Wconversion"
-	CXXFLAGS="$CXXFLAGS -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wctor-dtor-privacy -Wnon-virtual-dtor -Woverloaded-virtual -Wreorder -Wsign-promo "
+	CXXFLAGS="$CXXFLAGS -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wctor-dtor-privacy -Wnon-virtual-dtor -Woverloaded-virtual -Wreorder -Wsign-promo -Wundef "
 
 	if test "x$enable_gcc_opt" = "xno" ; then
-		temp_CFLAGS=`echo $CFLAGS | sed "s/O2/O0/"`
+		temp_CFLAGS=`echo $CFLAGS | $SED "s/O2/O0/"`
 		CFLAGS=$temp_CFLAGS
 		AC_MSG_WARN([[*** Compiler optimisations switched off. ***]])
 		fi
@@ -517,12 +546,12 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 		darwin* | rhapsody*)
 			# Disable -Wall, -pedantic and -Wshadow for Apple Darwin/Rhapsody.
 			# System headers on these systems are broken.
-			temp_CFLAGS=`echo $CFLAGS | sed "s/-Wall -pedantic//" | sed "s/-Wshadow//" | sed "s/-Waggregate-return//"`
+			temp_CFLAGS=`echo $CFLAGS | $SED "s/-Wall -pedantic//" | $SED "s/-Wshadow//" | $SED "s/-Waggregate-return//"`
 			CFLAGS=$temp_CFLAGS
 			SHLIB_VERSION_ARG="-Wl,-exported_symbols_list -Wl,\$(srcdir)/Symbols.darwin"
 			;;
-		linux*)
-			SHLIB_VERSION_ARG="-Wl,--version-script=\$(srcdir)/Symbols.linux"
+		linux*|kfreebsd*-gnu*|gnu*)
+			SHLIB_VERSION_ARG="-Wl,--version-script=\$(srcdir)/Symbols.gnu-binutils"
 			;;
 		mingw*)
 			# Linker flag '-Wl,--out-implib' does not work with mingw cross compiler
@@ -558,6 +587,12 @@ if test x"$CFLAGS" = x ; then
 
 HOST_TRIPLET="${host_cpu}-${host_vendor}-${host_os}"
 
+if test "$HOST_TRIPLET" = "x86_64-w64-mingw32" ; then
+	OS_SPECIFIC_LINKS=" -static-libgcc $OS_SPECIFIC_LINKS"
+	fi
+
+WIN_RC_VERSION=`echo $PACKAGE_VERSION | $SED -e "s/p.*//" -e "s/\./,/g"`
+
 #-------------------------------------------------------------------------------
 
 AC_SUBST(HOST_TRIPLET)
@@ -568,9 +603,13 @@ AC_SUBST(HTML_FGCOLOUR)
 
 AC_SUBST(SHLIB_VERSION_ARG)
 AC_SUBST(SHARED_VERSION_INFO)
+AC_SUBST(CLEAN_VERSION)
+AC_SUBST(WIN_RC_VERSION)
+
 AC_SUBST(OS_SPECIFIC_CFLAGS)
 AC_SUBST(OS_SPECIFIC_LINKS)
 AC_SUBST(ALSA_LIBS)
+AC_SUBST(SNDIO_LIBS)
 
 AC_SUBST(EXTERNAL_CFLAGS)
 AC_SUBST(EXTERNAL_LIBS)
@@ -579,18 +618,13 @@ dnl The following line causes the libtool distributed with the source
 dnl to be replaced if the build system has a more recent version.
 AC_SUBST(LIBTOOL_DEPS)
 
-# Shave make automake/libtool output much less verbose and much more
-# readable. See : git://git.lespiau.name/shave
-SHAVE_INIT([],[enable])
-
 AC_CONFIG_FILES([ \
-	shave shave-libtool \
-	src/sndfile.h src/Makefile src/GSM610/Makefile src/G72x/Makefile \
-	man/Makefile examples/Makefile tests/Makefile regtest/Makefile \
-	M4/Makefile doc/Makefile Win32/Makefile Octave/Makefile \
-	programs/Makefile doc/libsndfile.css \
-	Makefile libsndfile.spec sndfile.pc \
-	tests/test_wrapper.sh build-test-tarball.mk \
+	src/Makefile man/Makefile examples/Makefile tests/Makefile regtest/Makefile \
+	M4/Makefile doc/Makefile Win32/Makefile Octave/Makefile programs/Makefile \
+	Makefile \
+	src/version-metadata.rc tests/test_wrapper.sh tests/pedantic-header-test.sh \
+	doc/libsndfile.css build-test-tarball.mk libsndfile.spec sndfile.pc \
+	src/sndfile.h \
 	])
 AC_OUTPUT
 
@@ -604,7 +638,7 @@ AC_MSG_RESULT([
 
   Configuration summary :
 
-    libsndfile cersion : .................. ${VERSION}
+    libsndfile version : .................. ${VERSION}
 
     Host CPU : ............................ ${host_cpu}
     Host Vendor : ......................... ${host_vendor}
@@ -612,16 +646,26 @@ AC_MSG_RESULT([
 
     Experimental code : ................... ${enable_experimental:-no}
     Using ALSA in example programs : ...... ${enable_alsa:-no}
-    External FLAC/Ogg/Vorbis : ............ ${enable_external_libs:-no}
+    External Ogg/Vorbis : ............ ${enable_external_libs:-no}
 ])
 
+if test -z "$PKG_CONFIG" ; then
+	echo "    *****************************************************************"
+	echo "    ***          The pkg-config program is missing.               ***"
+	echo "    *** External Ogg/Vorbis libs cannot be found without it. ***"
+	echo "    ***       http://pkg-config.freedesktop.org/wiki/             ***"
+	echo "    *****************************************************************"
+	echo
+	fi
 
 if test x$ac_cv_c_compiler_gnu = xyes ; then
-	echo -e "  Tools :\n"
+	echo "  Tools :"
+	echo
 	echo "    Compiler is GCC : ..................... ${ac_cv_c_compiler_gnu}"
 	echo "    GCC version : ......................... ${GCC_VERSION}"
 	if test $GCC_MAJOR_VERSION -lt 3 ; then
-		echo -e "\n    ** This compiler version allows applications to write"
+		echo "\n"
+		echo "    ** This compiler version allows applications to write"
 		echo "    ** to static strings within the library."
 		echo "    ** Compile with GCC version 3.X or above to avoid this problem."
 		fi
@@ -646,8 +690,9 @@ AC_MSG_RESULT([[
 
 if test x$prefix != "x/usr" ; then
 	echo "Compiling some other packages against libsndfile may require"
-	echo -e "the addition of \"$libdir/pkgconfig\" to the"
-	echo -e "PKG_CONFIG_PATH environment variable.\n"
+	echo "the addition of '$libdir/pkgconfig' to the"
+	echo "PKG_CONFIG_PATH environment variable."
+	echo
 	fi
 
 (cd src && make genfiles)

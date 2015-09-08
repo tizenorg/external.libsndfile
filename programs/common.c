@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 1999-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 1999-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2008 George Blood Audio
 **
 ** All rights reserved.
@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #include <sndfile.h>
 
@@ -146,6 +147,14 @@ merge_broadcast_info (SNDFILE * infile, SNDFILE * outfile, int format, const MET
 	REPLACE_IF_NEW (origination_time) ;
 	REPLACE_IF_NEW (umid) ;
 
+	/* Special case for Time Ref. */
+	if (info->time_ref != NULL)
+	{	uint64_t ts = atoll (info->time_ref) ;
+
+		binfo.time_reference_high = (ts >> 32) ;
+		binfo.time_reference_low = (ts & 0xffffffff) ;
+		} ;
+
 	/* Special case for coding_history because we may want to append. */
 	if (info->coding_history != NULL)
 	{	if (info->coding_hist_append)
@@ -180,22 +189,22 @@ update_strings (SNDFILE * outfile, const METADATA_INFO * info)
 		sf_set_string (outfile, SF_STR_TITLE, info->title) ;
 
 	if (info->copyright != NULL)
-		sf_set_string (outfile, SF_STR_TITLE, info->copyright) ;
+		sf_set_string (outfile, SF_STR_COPYRIGHT, info->copyright) ;
 
 	if (info->artist != NULL)
 		sf_set_string (outfile, SF_STR_ARTIST, info->artist) ;
 
 	if (info->comment != NULL)
-		sf_set_string (outfile, SF_STR_TITLE, info->comment) ;
+		sf_set_string (outfile, SF_STR_COMMENT, info->comment) ;
 
 	if (info->date != NULL)
 		sf_set_string (outfile, SF_STR_DATE, info->date) ;
 
 	if (info->album != NULL)
-		sf_set_string (outfile, SF_STR_TITLE, info->album) ;
+		sf_set_string (outfile, SF_STR_ALBUM, info->album) ;
 
 	if (info->license != NULL)
-		sf_set_string (outfile, SF_STR_TITLE, info->license) ;
+		sf_set_string (outfile, SF_STR_LICENSE, info->license) ;
 
 } /* update_strings */
 
@@ -238,8 +247,6 @@ sfe_apply_metadata_changes (const char * filenames [2], const METADATA_INFO * in
 		goto cleanup_exit ;
 		} ;
 
-	update_strings (outfile, info) ;
-
 	if (infile != outfile)
 	{	int infileminor = SF_FORMAT_SUBMASK & sfinfo.format ;
 
@@ -249,6 +256,8 @@ sfe_apply_metadata_changes (const char * filenames [2], const METADATA_INFO * in
 		else
 			sfe_copy_data_int (outfile, infile, sfinfo.channels) ;
 		} ;
+
+	update_strings (outfile, info) ;
 
 cleanup_exit :
 
@@ -351,3 +360,20 @@ sfe_dump_format_map (void)
 		} ;
 
 } /* sfe_dump_format_map */
+
+const char *
+program_name (const char * argv0)
+{	const char * tmp ;
+
+	tmp = strrchr (argv0, '/') ;
+	argv0 = tmp ? tmp + 1 : argv0 ;
+
+	tmp = strrchr (argv0, '/') ;
+	argv0 = tmp ? tmp + 1 : argv0 ;
+
+	/* Remove leading libtool name mangling. */
+	if (strstr (argv0, "lt-") == argv0)
+		return argv0 + 3 ;
+
+	return argv0 ;
+} /* program_name */

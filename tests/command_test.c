@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2001-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2001-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -805,7 +805,6 @@ static	void
 current_sf_info_test	(const char *filename)
 {	SNDFILE *outfile, *infile ;
 	SF_INFO outinfo, ininfo ;
-	sf_count_t last_count ;
 
 	print_test_name ("current_sf_info_test", filename) ;
 
@@ -832,8 +831,6 @@ current_sf_info_test	(const char *filename)
 	/* Read file making sure no channel map exists. */
 	memset (&ininfo, 0, sizeof (ininfo)) ;
 	infile = test_open_file_or_die (filename, SFM_READ, &ininfo, SF_TRUE, __LINE__) ;
-
-	last_count = ininfo.frames ;
 
 	test_write_double_or_die (outfile, 0, double_data, BUFFER_LEN, __LINE__) ;
 
@@ -1098,7 +1095,9 @@ broadcast_coding_history_test (const char *filename)
 		} ;
 
 	if (bc_read.coding_history_size < strlen (default_history) || memcmp (bc_read.coding_history, default_history, strlen (default_history)) != 0)
-	{	printf ("\n\nLine %d : unexpected coding history '%.*s'.\n\n", __LINE__, bc_read.coding_history_size, bc_read.coding_history) ;
+	{	printf ("\n\n"
+				"Line %d : unexpected coding history '%.*s',\n"
+				"            should be '%s'\n\n", __LINE__, bc_read.coding_history_size, bc_read.coding_history, default_history) ;
 		exit (1) ;
 		} ;
 
