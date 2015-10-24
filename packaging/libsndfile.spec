@@ -54,6 +54,7 @@ make %{?jobs:-j%jobs}
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/license
 cp COPYING %{buildroot}/usr/share/license/%{name}
+cat src/GSM610/COPYRIGHT >> %{buildroot}/usr/share/license/%{name}
 %make_install
 
 
